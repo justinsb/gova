@@ -1,11 +1,11 @@
 package services
 
 import (
-	"github.com/justinsb/gova/collections"
+	//	"github.com/justinsb/gova/collections"
 	"github.com/justinsb/gova/errors"
-	"github.com/justinsb/slf4g/log"
+	//	"github.com/justinsb/slf4g/log"
 
-	"fmt"
+	//	"fmt"
 	"io"
 )
 
@@ -17,77 +17,22 @@ type Service interface {
 	ManageResource(owned io.Closer)
 }
 
-type ServiceMap struct {
-	factory  fnServiceFactory
-	services map[string]Service
-}
-
 // +gen
 type ServiceConfig interface {
 	Key() string
 }
 
-type fnServiceFactory func(config ServiceConfig) Service
-
-func NewServiceMap(factory fnServiceFactory) *ServiceMap {
-	self := &ServiceMap{}
-	self.factory = factory
-	self.services = make(map[string]Service)
-	return self
-}
-
-func (self *ServiceMap) Update(configs ServiceConfigs) errors.ErrorList {
-	e := errors.NewErrorList()
-
-	foundKeys := make(map[string]bool)
-
-	for _, config := range configs {
-		key := config.Key()
-		foundKeys[key] = true
-
-		service := self.services[key]
-		if service == nil {
-			service = self.factory(config)
-			if service == nil {
-				log.Warn("Could not create service for key: %v", key)
-				e.Add(fmt.Errorf("Could not create service for key: %v", key))
-			} else {
-				self.services[key] = service
-
-				e.AddAll(service.Start())
-			}
-		} else {
-			e.AddAll(service.Update(config))
-		}
-	}
-
-	for key, service := range self.services {
-		if !foundKeys[key] {
-			errs := service.Stop()
-
-			e.AddAll(errs)
-			if !errs.IsEmpty() {
-				log.Warn("Error stopping service: %v", service, errs)
-			} else {
-				delete(self.services, key)
-			}
-		}
-	}
-
-	return e
-}
-
-func StopServices(services collections.Sequence) errors.ErrorList {
-	e := errors.NewErrorList()
-
-	for it := services.Iterator(); it.HasNext(); {
-		serviceMap := it.Next().(ServiceMap)
-		for _, service := range serviceMap.services {
-			e.AddAll(service.Stop())
-		}
-	}
-	return e
-}
+//func StopServices(services collections.Sequence) errors.ErrorList {
+//	e := errors.NewErrorList()
+//
+//	for it := services.Iterator(); it.HasNext(); {
+//		serviceMap := it.Next().(ServiceMap)
+//		for _, service := range serviceMap.services {
+//			e.AddAll(service.Stop())
+//		}
+//	}
+//	return e
+//}
 
 type ResourceManager struct {
 	io.Closer
@@ -115,3 +60,50 @@ func (self *ResourceManager) Close() error {
 
 	return errs.Any()
 }
+
+//type ServiceConfigChangeTracker struct {
+//}
+//
+//type TombstoneServiceConfig struct {
+//	key string
+//}
+//
+//func (self *TombstoneServiceConfig) Key() string {
+//	return self.key
+//}
+//
+//func NewServiceConfigChangeTracker(configsets <-chan []ServiceConfig) <-chan ServiceConfig {
+//	out := make(chan ServiceConfig)
+//
+//	go func() {
+//		previous := make(map[string]ServiceConfig)
+//
+//		for configset := range configsets {
+//			next := make(map[string]ServiceConfig)
+//			for _, config := range configset {
+//				key := config.Key()
+//				previousConfig := previous[key]
+//				if previousConfig == nil {
+//					// New
+//					out <- config
+//				} else {
+//					// We don't bother with change-detection
+//					out <- config
+//				}
+//				next[key] = config
+//			}
+//
+//			for key, config := range previous {
+//				_, found := next[key]
+//				if !found {
+//					// Removed
+//					config := &TombstoneServiceConfig{}
+//					config.key = key
+//					out <- config
+//				}
+//			}
+//
+//		}
+//		close(out)
+//	}()
+//}
