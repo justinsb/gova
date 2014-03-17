@@ -52,16 +52,16 @@ func NewSliceSequence(items []interface{}) SliceSequence {
 	return SliceSequence{items: items}
 }
 
-func (self *SliceSequence) Iterator() Iterator {
+func (self SliceSequence) Iterator() Iterator {
 	it := NewSequenceIterator(self)
 	return &it
 }
 
-func (self *SliceSequence) Size() int {
+func (self SliceSequence) Size() int {
 	return len(self.items)
 }
 
-func (self *SliceSequence) At(index int) interface{} {
+func (self SliceSequence) At(index int) interface{} {
 	return self.items[index]
 }
 
