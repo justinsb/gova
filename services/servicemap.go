@@ -1,13 +1,11 @@
 package services
 
 import (
-	//	"github.com/justinsb/gova/collections"
+	"github.com/justinsb/gova/assert"
 	"github.com/justinsb/gova/errors"
 	"github.com/justinsb/slf4g/log"
 
 	"sync"
-	//	"fmt"
-	//	"io"
 )
 
 type ServiceMap struct {
@@ -23,7 +21,7 @@ type ServiceSlot struct {
 	channel chan<- ServiceConfig
 }
 
-type fnServiceFactory func(key string, channel <-chan ServiceConfig) interface{}
+type fnServiceFactory func(confg ServiceConfig, channel <-chan ServiceConfig) interface{}
 
 func NewServiceMap(factory fnServiceFactory) *ServiceMap {
 	self := &ServiceMap{}
@@ -35,8 +33,7 @@ func NewServiceMap(factory fnServiceFactory) *ServiceMap {
 		//		foundKeys := make(map[string]bool)
 
 		for config := range self.changes {
-			key := config.Key()
-			slot := self.getSlot(key)
+			slot := self.getSlot(config)
 			if slot == nil {
 				continue
 			}
@@ -52,14 +49,16 @@ func (self *ServiceMap) Channel() chan<- ServiceConfig {
 	return self.changes
 }
 
-func (self *ServiceMap) getSlot(key string) *ServiceSlot {
+func (self *ServiceMap) getSlot(config ServiceConfig) *ServiceSlot {
+	key := config.Key()
+
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
 	slot := self.services[key]
 	if slot == nil {
 		channel := make(chan ServiceConfig)
-		service := self.factory(key, channel)
+		service := self.factory(config, channel)
 		if service == nil {
 			log.Warn("Could not create service for key: %v", key)
 			return nil
@@ -133,8 +132,10 @@ func (self *ServiceMap) Stop() errors.ErrorList {
 	return errors.NoErrors()
 }
 
-func (self *ServiceMap) remove(key string, tombstone ServiceConfig) {
-	slot := self.getSlot(key)
+func (self *ServiceMap) remove(tombstone ServiceConfig) {
+	key := tombstone.Key()
+
+	slot := self.getSlot(tombstone)
 	if slot == nil {
 		log.Warn("Tried to remove service, but service not found: %v", key)
 		return
@@ -158,9 +159,9 @@ func (self *ServiceMap) ReplaceConfigs(configs []ServiceConfig, fnTombstone func
 	for _, config := range configs {
 		key := config.Key()
 
-		delete(keys, key)
+		keys[key] = false
 
-		slot := self.getSlot(key)
+		slot := self.getSlot(config)
 		if slot == nil {
 			continue
 		}
@@ -168,9 +169,15 @@ func (self *ServiceMap) ReplaceConfigs(configs []ServiceConfig, fnTombstone func
 		slot.channel <- config
 	}
 
-	for key, _ := range keys {
+	for key, v := range keys {
+		if !v {
+			continue
+		}
+
 		tombstone := fnTombstone(key)
 
-		self.remove(key, tombstone)
+		assert.That(key == tombstone.Key())
+
+		self.remove(tombstone)
 	}
 }
