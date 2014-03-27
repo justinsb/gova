@@ -45,7 +45,7 @@ type Pool struct {
 	available *list.List
 }
 
-func (self *Pool) Init() {
+func (self *Pool) init() {
 	self.allocated = make(map[interface{}]bool)
 	self.available = list.New()
 }
@@ -53,7 +53,7 @@ func (self *Pool) Init() {
 func NewPool() *Pool {
 	self := &Pool{}
 
-	self.Init()
+	self.init()
 
 	return self
 }
@@ -61,6 +61,10 @@ func NewPool() *Pool {
 func (self *Pool) Add(element interface{}) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
+
+	if self.allocated == nil {
+		self.init()
+	}
 
 	if self.allocated[element] {
 		panic("Elemenet is already allocated from the pool")
@@ -72,6 +76,10 @@ func (self *Pool) Add(element interface{}) {
 func (self *Pool) Borrow() Pooled {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
+
+	if self.allocated == nil {
+		self.init()
+	}
 
 	head := self.available.Front()
 	if head == nil {
@@ -95,6 +103,10 @@ func (self *Pool) Borrow() Pooled {
 func (self *Pool) Return(pooled Pooled) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
+
+	if self.allocated == nil {
+		self.init()
+	}
 
 	poolEntry := pooled.(*PoolEntry)
 	borrowed := poolEntry.borrowed
