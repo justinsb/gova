@@ -1,27 +1,9 @@
 package collections
 
-type Iterator interface {
-	Next() interface{}
-	HasNext() bool
-}
-
-type Iterable interface {
-	Iterator() Iterator
-}
-
-type Collection interface {
-	Iterable
-	Size() int
-}
-
 type Sequence interface {
 	Collection
-	At(index int) interface{}
-}
 
-type MutableCollection interface {
-	Collection
-	Add(item interface{})
+	At(index int) interface{}
 }
 
 type SequenceIterator struct {

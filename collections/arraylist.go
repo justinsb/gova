@@ -1,6 +1,8 @@
 package collections
 
 type ArrayList struct {
+	MutableCollection
+
 	items []interface{}
 }
 
