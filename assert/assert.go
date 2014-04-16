@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"path"
+	"reflect"
 	"runtime"
 
 	"github.com/justinsb/slf4g/log"
@@ -15,7 +16,11 @@ func That(predicate bool) {
 		return
 	}
 
-	log.Warn("Failed assertion")
+	Fail("Expected condition was false")
+}
+
+func Fail(message string) {
+	log.Error("Failed assertion: %v", message)
 
 	var buffer bytes.Buffer
 
@@ -42,4 +47,14 @@ func That(predicate bool) {
 
 	// TODO: Should we panic?
 	panic("Assertion failed: " + buffer.String())
+}
+
+func Equal(left interface{}, right interface{}) {
+	// TODO: Turn off assertions?
+	if reflect.DeepEqual(left, right) {
+		return
+	}
+
+	message := fmt.Sprintf("Not equal: %v != %v", left, right)
+	Fail(message)
 }
