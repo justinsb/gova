@@ -1,6 +1,9 @@
 package log
 
-import ()
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type Logger struct {
 	appenders []Appender
@@ -48,4 +51,16 @@ func (self *Logger) Debug(msg string, params ...interface{}) {
 func (self *Logger) AddAppender(logger Appender) {
 	// TODO: mutex
 	self.appenders = append(self.appenders, logger)
+}
+
+func AsJson(o interface{}) string {
+	if o == nil {
+		return "nil"
+	}
+	bytes, err := json.Marshal(o)
+	if err != nil {
+		return fmt.Sprintf("[Error: %v]", err)
+	}
+
+	return string(bytes)
 }
