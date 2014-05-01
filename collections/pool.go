@@ -9,6 +9,11 @@ import (
 	"github.com/justinsb/slf4g/log"
 )
 
+type Pool interface {
+	Borrow() Pooled
+	Return(pooled Pooled)
+}
+
 type Pooled interface {
 	io.Closer
 
@@ -17,8 +22,15 @@ type Pooled interface {
 }
 
 type PoolEntry struct {
-	pool     *Pool
+	pool     Pool
 	borrowed interface{}
+}
+
+func NewPooled(pool Pool, borrowed interface{}) Pooled {
+	pooled := &PoolEntry{}
+	pooled.pool = pool
+	pooled.borrowed = borrowed
+	return pooled
 }
 
 func (self *PoolEntry) Close() error {
@@ -37,7 +49,7 @@ func (self *PoolEntry) Value() interface{} {
 	return self.borrowed
 }
 
-type Pool struct {
+type InMemoryPool struct {
 	allocated map[interface{}]bool
 
 	mutex sync.Mutex
@@ -45,20 +57,20 @@ type Pool struct {
 	available *list.List
 }
 
-func (self *Pool) init() {
+func (self *InMemoryPool) init() {
 	self.allocated = make(map[interface{}]bool)
 	self.available = list.New()
 }
 
-func NewPool() *Pool {
-	self := &Pool{}
+func NewPool() *InMemoryPool {
+	self := &InMemoryPool{}
 
 	self.init()
 
 	return self
 }
 
-func (self *Pool) Add(element interface{}) {
+func (self *InMemoryPool) Add(element interface{}) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -73,7 +85,7 @@ func (self *Pool) Add(element interface{}) {
 	self.available.PushBack(element)
 }
 
-func (self *Pool) Borrow() Pooled {
+func (self *InMemoryPool) Borrow() Pooled {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
@@ -97,10 +109,10 @@ func (self *Pool) Borrow() Pooled {
 
 	self.allocated[element] = true
 
-	return &PoolEntry{pool: self, borrowed: element}
+	return NewPooled(self, element)
 }
 
-func (self *Pool) Return(pooled Pooled) {
+func (self *InMemoryPool) Return(pooled Pooled) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
