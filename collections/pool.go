@@ -9,6 +9,14 @@ import (
 	"github.com/justinsb/slf4g/log"
 )
 
+type HasOwner interface {
+	GetOwner() string
+}
+
+type HasKey interface {
+	GetKey() string
+}
+
 type Pool interface {
 	Borrow(owner string) Pooled
 	Return(pooled Pooled)
