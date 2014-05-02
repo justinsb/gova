@@ -10,7 +10,7 @@ import (
 )
 
 type Pool interface {
-	Borrow() Pooled
+	Borrow(owner string) Pooled
 	Return(pooled Pooled)
 }
 
@@ -85,7 +85,7 @@ func (self *InMemoryPool) Add(element interface{}) {
 	self.available.PushBack(element)
 }
 
-func (self *InMemoryPool) Borrow() Pooled {
+func (self *InMemoryPool) Borrow(owner string) Pooled {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
