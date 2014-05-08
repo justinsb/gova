@@ -12,15 +12,15 @@ import (
 type Service interface {
 	Start() errors.ErrorList
 	Stop() errors.ErrorList
-	Update(config ServiceConfig) errors.ErrorList
+	Update(config interface{}) errors.ErrorList
 
 	ManageResource(owned io.Closer)
 }
 
-// +gen
-type ServiceConfig interface {
-	Key() string
-}
+//// +gen
+//type ServiceConfig interface {
+//	Key() string
+//}
 
 //func StopServices(services collections.Sequence) errors.ErrorList {
 //	e := errors.NewErrorList()

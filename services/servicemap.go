@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/justinsb/gova/assert"
+	"github.com/justinsb/gova/collections"
 	"github.com/justinsb/gova/errors"
 	"github.com/justinsb/slf4g/log"
 
@@ -9,25 +10,30 @@ import (
 )
 
 type ServiceMap struct {
-	factory  fnServiceFactory
+	factory     fnServiceFactory
+	keyFunction fnKeyFunction
+
 	services map[string]*ServiceSlot
-	changes  chan ServiceConfig
+	changes  chan interface{}
 
 	mutex sync.Mutex
 }
 
 type ServiceSlot struct {
 	service interface{}
-	channel chan<- ServiceConfig
+	channel chan<- interface{}
 }
 
-type fnServiceFactory func(confg ServiceConfig, channel <-chan ServiceConfig) interface{}
+type fnServiceFactory func(config interface{}, channel <-chan interface{}) interface{}
+type fnKeyFunction func(config interface{}) string
 
-func NewServiceMap(factory fnServiceFactory) *ServiceMap {
+func NewServiceMap(keyFunction fnKeyFunction, factory fnServiceFactory) *ServiceMap {
 	self := &ServiceMap{}
 	self.factory = factory
+	self.keyFunction = keyFunction
+
 	self.services = make(map[string]*ServiceSlot)
-	self.changes = make(chan ServiceConfig)
+	self.changes = make(chan interface{})
 
 	go func() {
 		//		foundKeys := make(map[string]bool)
@@ -45,19 +51,19 @@ func NewServiceMap(factory fnServiceFactory) *ServiceMap {
 	return self
 }
 
-func (self *ServiceMap) Channel() chan<- ServiceConfig {
+func (self *ServiceMap) Channel() chan<- interface{} {
 	return self.changes
 }
 
-func (self *ServiceMap) getSlot(config ServiceConfig) *ServiceSlot {
-	key := config.Key()
+func (self *ServiceMap) getSlot(config interface{}) *ServiceSlot {
+	key := self.keyFunction(config)
 
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
 
 	slot := self.services[key]
 	if slot == nil {
-		channel := make(chan ServiceConfig)
+		channel := make(chan interface{})
 		service := self.factory(config, channel)
 		if service == nil {
 			log.Warn("Could not create service for key: %v", key)
@@ -128,12 +134,12 @@ func (self *ServiceMap) keys() []string {
 //}
 
 func (self *ServiceMap) Stop() errors.ErrorList {
-	log.Error("TODO: Implement!!!")
+	log.Error("ServiceMap::Stop not implemented")
 	return errors.NoErrors()
 }
 
-func (self *ServiceMap) remove(tombstone ServiceConfig) {
-	key := tombstone.Key()
+func (self *ServiceMap) remove(tombstone interface{}) {
+	key := self.keyFunction(tombstone)
 
 	slot := self.getSlot(tombstone)
 	if slot == nil {
@@ -150,14 +156,15 @@ func (self *ServiceMap) remove(tombstone ServiceConfig) {
 	delete(self.services, key)
 }
 
-func (self *ServiceMap) ReplaceConfigs(configs []ServiceConfig, fnTombstone func(string) ServiceConfig) {
+func (self *ServiceMap) ReplaceConfigs(configs collections.Sequence, fnTombstone func(string) interface{}) {
 	keys := make(map[string]bool)
 	for _, key := range self.keys() {
 		keys[key] = true
 	}
 
-	for _, config := range configs {
-		key := config.Key()
+	for iterator := configs.Iterator(); iterator.HasNext(); {
+		config := iterator.Next()
+		key := self.keyFunction(config)
 
 		keys[key] = false
 
@@ -176,7 +183,7 @@ func (self *ServiceMap) ReplaceConfigs(configs []ServiceConfig, fnTombstone func
 
 		tombstone := fnTombstone(key)
 
-		assert.That(key == tombstone.Key())
+		assert.That(key == self.keyFunction(tombstone))
 
 		self.remove(tombstone)
 	}
