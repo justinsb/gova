@@ -6,7 +6,7 @@ import (
 
 	"container/list"
 
-	"github.com/justinsb/slf4g/log"
+	"github.com/justinsb/gova/log"
 )
 
 type HasOwner interface {

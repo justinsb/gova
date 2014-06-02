@@ -67,7 +67,7 @@ func (self *ErrorField) format(e *Event) string {
 	buffer.WriteString(e.Error.Error())
 	for _, pc := range callers {
 		f := runtime.FuncForPC(pc)
-		if !strings.Contains(f.Name(), "/slf4g/") {
+		if !strings.Contains(f.Name(), "/gova/log/") {
 			pathname, lineno := f.FileLine(pc)
 			filename := path.Base(pathname)
 

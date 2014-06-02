@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/justinsb/slf4g/log"
+	"github.com/justinsb/gova/log"
 )
 
 func That(predicate bool) {
@@ -33,7 +33,7 @@ func Fail(message string) {
 	buffer.WriteString("\n")
 	for _, pc := range callers {
 		f := runtime.FuncForPC(pc)
-		//if !strings.Contains(f.Name(), "/slf4g/")
+		//if !strings.Contains(f.Name(), "/gova/log/")
 		{
 			pathname, lineno := f.FileLine(pc)
 			filename := path.Base(pathname)

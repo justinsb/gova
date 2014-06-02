@@ -4,7 +4,7 @@ import (
 	"github.com/justinsb/gova/assert"
 	"github.com/justinsb/gova/collections"
 	"github.com/justinsb/gova/errors"
-	"github.com/justinsb/slf4g/log"
+	"github.com/justinsb/gova/log"
 
 	"sync"
 )
