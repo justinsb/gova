@@ -50,7 +50,7 @@ func (self *JsonMessageBodyReader) Read(t reflect.Type, req *http.Request, media
 		return nil, err
 	}
 
-	log.Warn("PointerDepth: %v, type %v", pointerDepth, t)
+	//log.Debug("PointerDepth: %v, type %v", pointerDepth, t)
 
 	// reflect.New returns a pointer, so we start at 1
 	for i := 1; i < pointerDepth; i++ {

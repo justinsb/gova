@@ -107,7 +107,7 @@ func (self *RestEndpointHandler) resolveEndpoint(res http.ResponseWriter, req *h
 	if suffix != "" {
 		pathComponents := strings.Split(suffix, "/")
 
-		log.Info("Path components:  %v", pathComponents)
+		//log.Debug("Path components:  %v", pathComponents)
 
 		for _, pathComponent := range pathComponents {
 
