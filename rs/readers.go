@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/justinsb/gova/assert"
-	"github.com/justinsb/gova/log"
 )
 
 type MessageBodyReader interface {
