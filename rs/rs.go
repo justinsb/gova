@@ -14,11 +14,14 @@ import (
 type HttpErrorObject struct {
 	Status  int
 	Message string
+
+	Headers map[string]string
 }
 
 func HttpError(status int) *HttpErrorObject {
 	e := &HttpErrorObject{}
 	e.Status = status
+	e.Headers = make(map[string]string)
 	return e
 }
 
@@ -371,6 +374,10 @@ func (self *RestEndpointHandler) httpHandler(res http.ResponseWriter, req *http.
 			if message == "" {
 				message = "Error"
 			}
+		}
+
+		for k, v := range httpError.Headers {
+			res.Header().Add(k, v)
 		}
 
 		log.Info("%v %v %v", status, requestMethod, requestUrl)
