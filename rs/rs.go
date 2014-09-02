@@ -132,6 +132,8 @@ func (self *RestEndpointHandler) resolveEndpoint(res http.ResponseWriter, req *h
 				argType := methodType.In(i)
 				if argType.Kind() == reflect.String {
 					args[i] = reflect.ValueOf(pathComponent)
+				} else if argType == reflect.TypeOf(req) {
+					args[i] = reflect.ValueOf(req)
 				} else {
 					v, err := injector.Get(argType)
 					if err != nil {
