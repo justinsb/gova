@@ -269,7 +269,7 @@ func (self *RestEndpointHandler) httpHandler(res http.ResponseWriter, req *http.
 
 	endpoint, err := self.resolveEndpoint(res, req)
 
-	if endpoint == nil {
+	if endpoint == nil && err == nil {
 		err = HttpError(http.StatusNotFound)
 	}
 
