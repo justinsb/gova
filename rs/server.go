@@ -42,8 +42,8 @@ func (self *RestServer) WithInjector(injector inject.Injector) {
 	self.injector = injector
 }
 
-func (self *RestServer) AddEndpoint(path string, object interface{}) *RestEndpointHandler {
-	endpoint := newRestEndpoint(self, path, object)
+func (self *RestServer) AddEndpoint(path string, t reflect.Type) *RestEndpointHandler {
+	endpoint := newRestEndpoint(self, path, t)
 	return endpoint
 }
 
@@ -83,4 +83,13 @@ func (self *RestServer) AddWriter(mbw MessageBodyWriter) {
 
 func (self *RestServer) ListenAndServe() error {
 	return self.httpServer.ListenAndServe()
+}
+
+func (self *RestServer) newInstance(t reflect.Type) (interface{}, error) {
+	if self.injector == nil {
+		v := reflect.New(t)
+		return v, nil
+	} else {
+		return self.injector.Get(t)
+	}
 }

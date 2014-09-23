@@ -17,6 +17,24 @@ func NewBinder() *Binder {
 	return self
 }
 
+type BindPartial struct {
+	binder *Binder
+	t      reflect.Type
+}
+
+func (self *Binder) Bind(prototype interface{}) BindPartial {
+	t := reflect.TypeOf(prototype)
+	return BindPartial{binder: self, t: t}
+}
+
+func (self *Binder) BindType(t reflect.Type) BindPartial {
+	return BindPartial{binder: self, t: t}
+}
+
+func (self BindPartial) ToInstance(instance interface{}) {
+	self.binder.addBinding(self.t, instance)
+}
+
 func (self *Binder) AddProvider(fn interface{}) {
 	binding := &FunctionBinding{}
 	binding.fn = fn
@@ -38,6 +56,11 @@ func (self *Binder) AddProvider(fn interface{}) {
 func (self *Binder) AddSingleton(obj interface{}) {
 	t := reflect.TypeOf(obj)
 	self.addBinding(t, obj)
+}
+
+func (self *Binder) AddDefaultBinding(t reflect.Type) {
+	binding := NewDefaultBinding(t)
+	self.bindings[t] = binding
 }
 
 func (self *Binder) addBinding(t reflect.Type, obj interface{}) {

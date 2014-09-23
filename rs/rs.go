@@ -44,18 +44,16 @@ type RestEndpointHandler struct {
 	server *RestServer
 	path   string
 
-	ptrT    reflect.Type
 	structT reflect.Type
 }
 
-func newRestEndpoint(server *RestServer, path string, object interface{}) *RestEndpointHandler {
+func newRestEndpoint(server *RestServer, path string, t reflect.Type) *RestEndpointHandler {
 	self := &RestEndpointHandler{}
 
 	self.server = server
 	self.path = path
 
-	self.ptrT = reflect.TypeOf(object)
-	self.structT = self.ptrT.Elem()
+	self.structT = t
 
 	http.HandleFunc(path, self.httpHandler)
 
@@ -103,11 +101,20 @@ func (self *RestEndpointHandler) resolveEndpoint(res http.ResponseWriter, req *h
 		suffix = suffix[:len(suffix)-1]
 	}
 
-	var err error
+	var endpoint reflect.Value
+	{
+		endpointObject, err := self.server.newInstance(self.structT)
+		if err != nil {
+			log.Warn("Cannot create %v", self.structT, err)
+			return nil, err
+		}
 
-	endpoint := reflect.New(self.structT)
+		endpoint = reflect.ValueOf(endpointObject)
+	}
 
 	if suffix != "" {
+		var err error
+
 		pathComponents := strings.Split(suffix, "/")
 
 		//log.Debug("Path components:  %v", pathComponents)
