@@ -133,6 +133,17 @@ func (self *ServiceMap) keys() []string {
 //	return e
 //}
 
+func (self *ServiceMap) Snapshot() []interface{} {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+
+	services := make([]interface{}, 0, len(self.services))
+	for _, slot := range self.services {
+		services = append(services, slot.service)
+	}
+	return services
+}
+
 func (self *ServiceMap) Stop() errors.ErrorList {
 	log.Error("ServiceMap::Stop not implemented")
 	return errors.NoErrors()
