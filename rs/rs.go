@@ -1,11 +1,13 @@
 package rs
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
 	"reflect"
 	"strings"
+	"unicode"
 
 	"github.com/justinsb/gova/assert"
 	"github.com/justinsb/gova/log"
@@ -89,6 +91,37 @@ func parseReturn(out []reflect.Value) (reflect.Value, error) {
 	return value, err
 }
 
+func findFirstMethod(target *reflect.Value, methodNames []string) *reflect.Value {
+	for _, methodName := range methodNames {
+		method := target.MethodByName(methodName)
+		if method.IsValid() {
+			return &method
+		}
+	}
+	return nil
+}
+
+func toCamelCase(name string) string {
+	toUpper := true
+
+	var buffer bytes.Buffer
+
+	for _, c := range name {
+		if c == '_' {
+			toUpper = true
+			continue
+		}
+
+		if toUpper {
+			buffer.WriteRune(unicode.ToUpper(c))
+			toUpper = false
+		} else {
+			buffer.WriteRune(c)
+		}
+	}
+	return buffer.String()
+}
+
 func (self *RestEndpointHandler) resolveEndpoint(res http.ResponseWriter, req *http.Request) (*reflect.Value, error) {
 	requestUri := req.RequestURI
 	suffix := requestUri[len(self.path):]
@@ -120,15 +153,14 @@ func (self *RestEndpointHandler) resolveEndpoint(res http.ResponseWriter, req *h
 		//log.Debug("Path components:  %v", pathComponents)
 
 		for _, pathComponent := range pathComponents {
-
-			methodName := "Item" + strings.ToUpper(pathComponent[:1]) + strings.ToLower(pathComponent)[1:]
-			method := endpoint.MethodByName(methodName)
-			if !method.IsValid() {
-				method = endpoint.MethodByName("Item")
-				if !method.IsValid() {
-					log.Debug("Items method not found (nor %v)", methodName)
-					return nil, nil
-				}
+			methodNames := []string{"Item" + strings.ToUpper(pathComponent[:1]) + strings.ToLower(pathComponent)[1:], // Legacy
+				"Item" + toCamelCase(pathComponent), // Preferred
+				"Item", // Generic
+			}
+			method := findFirstMethod(&endpoint, methodNames)
+			if method == nil {
+				log.Debug("Item method not found (tried %v)", methodNames)
+				return nil, nil
 			}
 
 			injector := self.server.injector
@@ -252,16 +284,21 @@ func (self *RestEndpointHandler) buildArg(res http.ResponseWriter, req *http.Req
 }
 
 func (self *RestEndpointHandler) buildArgs(res http.ResponseWriter, req *http.Request, method *reflect.Value) ([]reflect.Value, error) {
-	numIn := method.Type().NumIn()
-	args := make([]reflect.Value, numIn)
 	methodType := method.Type()
-	for i := 0; i < methodType.NumIn(); i++ {
-		val, err := self.buildArg(res, req, methodType.In(i))
-		if err != nil {
-			return nil, err
-		}
-		if val != nil {
-			args[i] = reflect.ValueOf(val)
+	numIn := methodType.NumIn()
+	args := make([]reflect.Value, numIn, numIn)
+	for i := 0; i < numIn; i++ {
+		argType := methodType.In(i)
+		if argType == reflect.TypeOf(req) {
+			args[i] = reflect.ValueOf(req)
+		} else {
+			val, err := self.buildArg(res, req, methodType.In(i))
+			if err != nil {
+				return nil, err
+			}
+			if val != nil {
+				args[i] = reflect.ValueOf(val)
+			}
 		}
 	}
 

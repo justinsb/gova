@@ -63,6 +63,12 @@ func (self *Binder) AddDefaultBinding(t reflect.Type) {
 	self.bindings[t] = binding
 }
 
+func (self *Binder) AddDefaultBindingByPointer(p interface{}) {
+	t := reflect.TypeOf(p).Elem()
+	log.Info("Type is %v", t)
+	self.AddDefaultBinding(t)
+}
+
 func (self *Binder) addBinding(t reflect.Type, obj interface{}) {
 	binding := &SingletonBinding{}
 	binding.obj = obj
@@ -72,10 +78,24 @@ func (self *Binder) addBinding(t reflect.Type, obj interface{}) {
 
 func (self *Binder) Get(t reflect.Type) (interface{}, error) {
 	binding, found := self.bindings[t]
-	if !found {
-		return nil, fmt.Errorf("No binding for type %v", t)
+	if found {
+		return binding.Get()
 	}
-	return binding.Get()
+
+	// If we requested *T, and we have a binding for T, we can satisfy that
+	if t.Kind() == reflect.Ptr {
+		tElem := t.Elem()
+		binding, found = self.bindings[tElem]
+		if found {
+			v, err := binding.Get()
+			if err != nil {
+				return nil, err
+			}
+			return v, nil
+		}
+	}
+
+	return nil, fmt.Errorf("No binding for type %v", t)
 }
 
 func (self *Binder) CreateInjector() Injector {
