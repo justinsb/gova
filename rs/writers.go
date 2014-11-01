@@ -41,7 +41,6 @@ func (self *JsonMessageBodyWriter) IsWritable(t reflect.Type, req *http.Request,
 }
 
 func (self *JsonMessageBodyWriter) Write(o interface{}, t reflect.Type, req *http.Request, res http.ResponseWriter) error {
-	log.Info("Writing message: %v", o)
 	if o != nil {
 		encoder := json.NewEncoder(res)
 
