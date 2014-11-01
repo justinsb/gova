@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
-
-	"github.com/justinsb/gova/log"
 )
 
 type MessageBodyWriter interface {
