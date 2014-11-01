@@ -71,7 +71,7 @@ func parseReturn(out []reflect.Value) (reflect.Value, error) {
 		errValue := out[1]
 		if !errValue.IsNil() {
 			var ok bool
-			log.Debug("Got error value: %v", errValue)
+			log.Debug("Got error value from rs method: %v", errValue)
 			err, ok = errValue.Interface().(error)
 			if !ok {
 				err = fmt.Errorf("Unable to cast value to error")
@@ -122,9 +122,9 @@ func toCamelCase(name string) string {
 	return buffer.String()
 }
 
-func (self *RestEndpointHandler) resolveEndpoint(res http.ResponseWriter, req *http.Request) (*reflect.Value, error) {
-	requestUri := req.RequestURI
-	suffix := requestUri[len(self.path):]
+func (self *RestEndpointHandler) resolveEndpoint(req *http.Request) (*reflect.Value, error) {
+	requestPath := req.URL.Path
+	suffix := requestPath[len(self.path):]
 
 	if len(suffix) > 0 && suffix[0] == '/' {
 		suffix = suffix[1:]
@@ -238,7 +238,7 @@ func getMediaType(req *http.Request) (*MediaType, error) {
 	return mediaType, nil
 }
 
-func (self *RestEndpointHandler) buildArg(res http.ResponseWriter, req *http.Request, t reflect.Type) (interface{}, error) {
+func (self *RestEndpointHandler) buildArg(req *http.Request, t reflect.Type) (interface{}, error) {
 	v, err := self.server.injector.Get(t)
 	if err == nil && v != nil {
 		return v, nil
@@ -283,7 +283,7 @@ func (self *RestEndpointHandler) buildArg(res http.ResponseWriter, req *http.Req
 	return nil, fmt.Errorf("Unable to bind parameter: %v", t)
 }
 
-func (self *RestEndpointHandler) buildArgs(res http.ResponseWriter, req *http.Request, method *reflect.Value) ([]reflect.Value, error) {
+func (self *RestEndpointHandler) buildArgs(req *http.Request, method *reflect.Value) ([]reflect.Value, error) {
 	methodType := method.Type()
 	numIn := methodType.NumIn()
 	args := make([]reflect.Value, numIn, numIn)
@@ -292,7 +292,7 @@ func (self *RestEndpointHandler) buildArgs(res http.ResponseWriter, req *http.Re
 		if argType == reflect.TypeOf(req) {
 			args[i] = reflect.ValueOf(req)
 		} else {
-			val, err := self.buildArg(res, req, methodType.In(i))
+			val, err := self.buildArg(req, methodType.In(i))
 			if err != nil {
 				return nil, err
 			}
@@ -311,7 +311,7 @@ func (self *RestEndpointHandler) httpHandler(res http.ResponseWriter, req *http.
 
 	log.Debug("%v %v", requestMethod, requestUrl)
 
-	endpoint, err := self.resolveEndpoint(res, req)
+	endpoint, err := self.resolveEndpoint(req)
 
 	if endpoint == nil && err == nil {
 		err = HttpError(http.StatusNotFound)
@@ -333,7 +333,7 @@ func (self *RestEndpointHandler) httpHandler(res http.ResponseWriter, req *http.
 
 	var args []reflect.Value
 	if err == nil {
-		args, err = self.buildArgs(res, req, &method)
+		args, err = self.buildArgs(req, &method)
 	}
 
 	var val reflect.Value
@@ -405,7 +405,10 @@ func (self *RestEndpointHandler) httpHandler(res http.ResponseWriter, req *http.
 
 		res.WriteHeader(response.Status)
 
-		mbw.Write(response.Content, reflect.TypeOf(response.Content), req, res)
+		err = mbw.Write(response.Content, reflect.TypeOf(response.Content), req, res)
+		if err != nil {
+			log.Warn("Error while writing message body", err)
+		}
 	} else {
 		httpError, ok := err.(*HttpErrorObject)
 		if !ok {

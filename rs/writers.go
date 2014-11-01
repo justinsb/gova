@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
+
+	"github.com/justinsb/gova/log"
 )
 
 type MessageBodyWriter interface {
@@ -39,11 +41,14 @@ func (self *JsonMessageBodyWriter) IsWritable(t reflect.Type, req *http.Request,
 }
 
 func (self *JsonMessageBodyWriter) Write(o interface{}, t reflect.Type, req *http.Request, res http.ResponseWriter) error {
-	encoder := json.NewEncoder(res)
+	log.Info("Writing message: %v", o)
+	if o != nil {
+		encoder := json.NewEncoder(res)
 
-	err := encoder.Encode(o)
-	if err != nil {
-		return err
+		err := encoder.Encode(o)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
