@@ -38,6 +38,10 @@ func NewRestServer() *RestServer {
 	return self
 }
 
+func (self *RestServer) SetListen(listen string) {
+	self.httpServer.Addr = listen
+}
+
 func (self *RestServer) WithInjector(injector inject.Injector) {
 	self.injector = injector
 }
