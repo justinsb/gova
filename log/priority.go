@@ -1,5 +1,7 @@
 package log
 
+import "strings"
+
 type Priority int
 
 const (
@@ -27,3 +29,24 @@ func (priority Priority) String() string {
 		return "UNKNOWN"
 	}
 }
+
+func ParsePriority(s string) (Priority, bool) {
+	s = strings.ToLower(s)
+	if s == "debug" {
+		return PriorityDebug, true
+	}
+	if s == "info" {
+		return PriorityInfo, true
+	}
+	if s == "warn" {
+		return PriorityWarn, true
+	}
+	if s == "error" {
+		return PriorityError, true
+	}
+	if s == "fatal" {
+		return PriorityFatal, true
+	}
+	return PriorityInfo, false
+}
+

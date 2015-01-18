@@ -7,6 +7,7 @@ import (
 
 type Logger struct {
 	appenders []Appender
+	threshold Priority
 }
 
 func (self *Logger) log(priority Priority, msg string, params ...interface{}) {
@@ -29,22 +30,37 @@ func (self *Logger) log(priority Priority, msg string, params ...interface{}) {
 }
 
 func (self *Logger) Fatal(msg string, params ...interface{}) {
+	if self.threshold > PriorityFatal {
+		return
+	}
 	self.log(PriorityFatal, msg, params...)
 }
 
 func (self *Logger) Error(msg string, params ...interface{}) {
+	if self.threshold > PriorityError {
+		return
+	}
 	self.log(PriorityError, msg, params...)
 }
 
 func (self *Logger) Warn(msg string, params ...interface{}) {
+	if self.threshold > PriorityWarn {
+		return
+	}
 	self.log(PriorityWarn, msg, params...)
 }
 
 func (self *Logger) Info(msg string, params ...interface{}) {
+	if self.threshold > PriorityInfo {
+		return
+	}
 	self.log(PriorityInfo, msg, params...)
 }
 
 func (self *Logger) Debug(msg string, params ...interface{}) {
+	if self.threshold > PriorityDebug {
+		return
+	}
 	self.log(PriorityDebug, msg, params...)
 }
 
