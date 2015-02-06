@@ -18,13 +18,20 @@ func RootCause(err error) error {
 }
 
 func (e ChainedError) Error() string {
-	return e.Message + "\n" + e.Cause.Error()
+	message := e.Message
+	if e.Cause != nil {
+		message += "\n" + e.Cause.Error()
+	}
+	return message
 }
 
-func joinStrings(message ...string) string {
+func joinStrings(separator string, message ...string) string {
 	var buffer bytes.Buffer
 
-	for _, m := range message {
+	for i, m := range message {
+		if i != 0 {
+			buffer.WriteString(separator)
+		}
 		buffer.WriteString(m)
 	}
 	return buffer.String()
@@ -32,7 +39,7 @@ func joinStrings(message ...string) string {
 
 func Chain(err error, message ...string) error {
 	e := ChainedError{}
-	e.Message = joinStrings(message...)
+	e.Message = joinStrings(" ", message...)
 	e.Cause = err
 	return e
 }

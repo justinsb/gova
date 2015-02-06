@@ -1,6 +1,10 @@
 package files
 
-import "os"
+import (
+	"os"
+
+	"github.com/justinsb/gova/errors"
+)
 
 func Exists(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -11,4 +15,15 @@ func Exists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func ListFilenames(dir string) ([]string, error) {
+	f, err := os.Open(dir)
+	if err != nil {
+		return nil, errors.Chain(err, "Error opening directory ", dir)
+	}
+
+	defer f.Close()
+
+	return f.Readdirnames(-1)
 }
