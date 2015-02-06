@@ -1,7 +1,15 @@
 package errors
 
+import (
+	golang_errors "errors"
+)
+
 type ErrorList struct {
 	errors []error
+}
+
+func New(message string) error {
+	return golang_errors.New(message)
 }
 
 func NoErrors() ErrorList {
